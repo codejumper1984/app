@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace NetWork
+namespace NetWork.Util
 {
     public class SafeCircleList<T>
     {
@@ -41,7 +41,7 @@ namespace NetWork
             return default(T);
         }
 
-        public bool Push(T t)
+        public bool EnQueue(T t)
         {
             if(!IsFull())
             {
@@ -50,6 +50,16 @@ namespace NetWork
                 return true;
             }
             return false;
+        }
+        public bool DeQueue()
+        {
+            if(!IsEmpty())
+            {
+                IncFront();
+                return true;
+            }
+            return false;
+
         }
 
         private void IncEnd()

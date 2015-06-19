@@ -6,17 +6,10 @@ namespace NetWork
 {
     class TcpSession
     {
-        Socket sSocket = null;
-        String strIPAddress = String.Empty;
-        int nPort;
-        public bool Connect()
+        NetWork.Link.Link m_link = null;
+        public void Connect()
         {
-            Socket socket = new Socket(AddressFamily.InterNetwork,SocketType.Stream, ProtocolType.Tcp);
-            IPAddress ipAddress = IPAddress.Parse(strIPAddress);
-            IPEndPoint endPoint = new IPEndPoint(ipAddress, nPort);
-            socket.Connect(endPoint);
-
-            return true;
+            m_link = NetWork.Link.AyncTcpLinkFactory.Instance().CreateLink();
         }
     }
 }
