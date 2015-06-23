@@ -41,6 +41,9 @@ namespace NetWork.Link
         void Write(byte[] data);
         void Read(byte[] data);
 
+        // add for AsyncLink, main thread may have msg un send
+        void ProcessUnSendMsg();
+
         EventCallBack DisconnectedCallBack
         {
             get;

@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<TestRun id="d33445c1-6482-44b4-8248-64d1539e8a88" name="user@USER-PC 2015-06-23 17:25:16" runUser="user-PC\user" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <TestSettings name="Local" id="656f7c0d-6a9a-4eb6-a5d7-87b00b60ab11">
+    <Description>These are default test settings for a local test run.</Description>
+    <Deployment enabled="false" runDeploymentRoot="user_USER-PC 2015-06-23 17_25_16">
+      <DeploymentItem filename="D:\gitroot\app\network-csharp\NetWork\NetWork\bin\Debug\NetWork.dll" />
+    </Deployment>
+    <Execution>
+      <TestTypeSpecific />
+      <AgentRule name="Execution Agents">
+      </AgentRule>
+    </Execution>
+  </TestSettings>
+  <Times creation="2015-06-23T17:25:16.0220378+08:00" queuing="2015-06-23T17:25:16.0420390+08:00" start="2015-06-23T17:25:16.0540397+08:00" finish="2015-06-23T17:25:16.4390617+08:00" />
+  <ResultSummary outcome="Failed">
+    <Counters total="2" executed="2" passed="1" error="0" failed="1" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+  </ResultSummary>
+  <TestDefinitions>
+    <UnitTest name="TestMethodDeque" storage="d:\gitroot\app\network-csharp\network\networktest\bin\debug\networktest.dll" id="996c8e35-d37d-02ca-8a7e-0bf6125f3595">
+      <Execution id="9f984791-326a-4390-a6a4-6a1a55c735b8" />
+      <TestMethod codeBase="D:/gitroot/app/network-csharp/NetWork/NetWorkTest/bin/Debug/NetWorkTest.DLL" adapterTypeName="Microsoft.VisualStudio.TestTools.TestTypes.Unit.UnitTestAdapter, Microsoft.VisualStudio.QualityTools.Tips.UnitTest.Adapter, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" className="NetWorkTest.SafeCircleList, NetWorkTest, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" name="TestMethodDeque" />
+    </UnitTest>
+    <UnitTest name="TestMethodEnQueue" storage="d:\gitroot\app\network-csharp\network\networktest\bin\debug\networktest.dll" id="fab55317-d5d5-e680-8218-2bd55847f74e">
+      <Execution id="45a073cd-2369-4a00-a463-ba613292cb16" />
+      <TestMethod codeBase="D:/gitroot/app/network-csharp/NetWork/NetWorkTest/bin/Debug/NetWorkTest.DLL" adapterTypeName="Microsoft.VisualStudio.TestTools.TestTypes.Unit.UnitTestAdapter, Microsoft.VisualStudio.QualityTools.Tips.UnitTest.Adapter, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" className="NetWorkTest.SafeCircleList, NetWorkTest, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" name="TestMethodEnQueue" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <TestEntries>
+    <TestEntry testId="996c8e35-d37d-02ca-8a7e-0bf6125f3595" executionId="9f984791-326a-4390-a6a4-6a1a55c735b8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="fab55317-d5d5-e680-8218-2bd55847f74e" executionId="45a073cd-2369-4a00-a463-ba613292cb16" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <Results>
+    <UnitTestResult executionId="9f984791-326a-4390-a6a4-6a1a55c735b8" testId="996c8e35-d37d-02ca-8a7e-0bf6125f3595" testName="TestMethodDeque" computerName="USER-PC" duration="00:00:00.0101228" startTime="2015-06-23T17:25:16.0560398+08:00" endTime="2015-06-23T17:25:16.4060598+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9f984791-326a-4390-a6a4-6a1a55c735b8">
+    </UnitTestResult>
+    <UnitTestResult executionId="45a073cd-2369-4a00-a463-ba613292cb16" testId="fab55317-d5d5-e680-8218-2bd55847f74e" testName="TestMethodEnQueue" computerName="USER-PC" duration="00:00:00.0194362" startTime="2015-06-23T17:25:16.4070599+08:00" endTime="2015-06-23T17:25:16.4300612+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="45a073cd-2369-4a00-a463-ba613292cb16">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.IsFalse failed. </Message>
+          <StackTrace>   at NetWorkTest.SafeCircleList.TestMethodEnQueue() in D:\gitroot\app\network-csharp\NetWork\NetWorkTest\SafeCircleList.cs:line 29
+</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+</TestRun>

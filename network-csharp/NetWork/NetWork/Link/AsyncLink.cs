@@ -15,6 +15,7 @@ namespace NetWork.Link
         LinkedList<AsyncWriteData> m_lMsgBack = new LinkedList<AsyncWriteData>();
 
         SafeCircleList<AsyncWriteData> m_CircleList = new SafeCircleList<AsyncWriteData>();
+        SafeCircleList<int> m_AReadFlag = new SafeCircleList<int>();
 
         String m_strIP = String.Empty;
         ushort m_unPort = 0;
@@ -35,6 +36,11 @@ namespace NetWork.Link
                     AsyncWriteData data = m_CircleList.Front();
                     Write_Socket(data.data);
                 }
+                else
+                {
+                    //Async Call Over
+                    AReadSleep();
+                }
             }
 
         }
@@ -46,17 +52,9 @@ namespace NetWork.Link
 
         public void Write(byte[] data)
         {
-            if (m_CircleList.IsEmpty())
-            {
-                Write_Socket(data);
-            }
             AsyncWriteData writeData = new AsyncWriteData();
             writeData.data = data;
-            if (m_CircleList.IsFull())
-            {
-                m_lMsgBack.AddFirst(writeData);
-            }
-            else
+            if (m_CircleList.IsEmpty())
             {
                 LinkedListNode<AsyncWriteData> node = m_lMsgBack.First;
                 while(node != null)
@@ -74,24 +72,33 @@ namespace NetWork.Link
                 }
                 if (!m_CircleList.IsFull())
                     m_CircleList.EnQueue(writeData);
+                // first add data to queue and then call async send
+                Write_Socket(data);
             }
-        }
+            else
+            {
+                if (m_CircleList.IsFull())
+                {
+                    m_lMsgBack.AddFirst(writeData);
+                }
+                else
+                {
+                    if (!m_CircleList.IsFull())
+                        m_CircleList.EnQueue(writeData);
+                }
 
-        public void Update()
-        {
-
+            }
         }
 
         public void Close()
         {
-
+            if(m_socket != null)
+            {
+                m_socket.Close();
+                m_socket = null;
+            }
         }
 
-        public EventCallBack ConnectCallBack
-        {
-            get;
-            set;
-        }
 
         public bool IsConnected
         {
@@ -100,6 +107,13 @@ namespace NetWork.Link
                 return m_socket != null && m_socket.Connected;
             }
         }
+
+        public EventCallBack ConnectCallBack
+        {
+            get;
+            set;
+        }
+
         public EventCallBack DisconnectedCallBack
         {
             get;
@@ -117,7 +131,6 @@ namespace NetWork.Link
             get;
             set;
         }
-
 
         public void AsyncConnectCallBack(IAsyncResult ar)
         {
@@ -147,15 +160,53 @@ namespace NetWork.Link
             }
             else
             {
-                LinkCallBackData callBackData = new LinkCallBackData();
-                callBackData.CallBackMsg = eLinkCallBackMsg.Connect_IPFormatError;
-                callBackData.Data = strIP;
-                ConnectCallBack(callBackData);
+                if(ConnectCallBack != null)
+                {
+                    LinkCallBackData callBackData = new LinkCallBackData();
+                    callBackData.CallBackMsg = eLinkCallBackMsg.Connect_IPFormatError;
+                    callBackData.Data = strIP;
+                    ConnectCallBack(callBackData);
+                }
+                Close();
             }
         }
 
         public void Send(byte[] data)
         {
+
+        }
+
+        private bool AReadAwake()
+        {
+            if (m_AReadFlag.IsEmpty())
+            {
+                m_AReadFlag.EnQueue(1);
+                return true;
+            }
+            return false;
+        }
+
+        private bool AReadSleep()
+        {
+            return m_AReadFlag.DeQueue();
+        }
+
+        private bool IsAReadSleep()
+        {
+            return m_AReadFlag.IsEmpty();
+        }
+
+        public void ProcessUnSendMsg()
+        {
+            if(!m_CircleList.IsEmpty())
+            {
+                if(IsAReadSleep())
+                {
+                    AReadAwake(); // must before downside
+                    AsyncWriteData data = m_CircleList.Front();
+                    Write_Socket(data.data);
+                }
+            }
 
         }
 

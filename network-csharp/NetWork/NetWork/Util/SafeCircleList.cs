@@ -16,6 +16,22 @@ namespace NetWork.Util
             nEndIdx = 0;
             this.nListSize = nListSize;
         }
+        public int BufferSize()
+        {
+            return nListSize;
+        }
+        public int Capacity()
+        {
+            return nListSize - Size() - 1;
+        }
+
+        public int Size()
+        {
+            if (nEndIdx >= nFrontIdx)
+                return nEndIdx - nFrontIdx;
+            else
+                return nListSize - (nFrontIdx - nEndIdx);
+        }
 
         public bool IsEmpty()
         {
