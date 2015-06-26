@@ -10,7 +10,9 @@ namespace NetWork.Link
     public enum eLinkCallBackMsg
     {
         Connect_IPFormatError = 0,
-        Connect_ConnectFailed 
+        Connect_ConnectFailed,
+        Receive_Finished,
+        Send_Finished,
     }
 
     public class LinkCallBackData
@@ -23,6 +25,11 @@ namespace NetWork.Link
         public Object Data
         {
             get;set;
+        }
+        public int Flag
+        {
+            get;
+            set;
         }
 
     }
@@ -38,8 +45,8 @@ namespace NetWork.Link
 
         void Connect(String strIp, ushort unPort);
         void Close();
-        void Write(byte[] data);
-        void Read(byte[] data);
+        void Send(byte[] data);
+        int Receive(byte[] data);
 
         // add for AsyncLink, main thread may have msg un send
         void ProcessUnSendMsg();

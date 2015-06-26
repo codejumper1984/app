@@ -7,5 +7,7 @@ namespace NetWork.Msg
 {
     class Msg
     {
+        int nMsgLen;
+        int nMsgType;
     }
 }

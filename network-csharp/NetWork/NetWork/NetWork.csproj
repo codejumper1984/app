@@ -43,6 +43,7 @@
     <Compile Include="Link\AsyncLink.cs" />
     <Compile Include="Link\Link.cs" />
     <Compile Include="Link\LinkFactory.cs" />
+    <Compile Include="Msg\Decoder.cs" />
     <Compile Include="Msg\Msg.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Util\SafeCircleList.cs" />

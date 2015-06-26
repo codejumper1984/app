@@ -16,6 +16,7 @@ namespace NetWork
 
     public class TcpSession
     {
+        Cir
         NetWork.Link.Link m_link = null;
         public String strServerIp
         {
@@ -34,7 +35,22 @@ namespace NetWork
             m_link = NetWork.Link.AyncTcpLinkFactory.Instance().CreateLink();
             m_link.ConnectCallBack = OnConnectResultAsync;
             m_link.SendCallBack = OnWriteResultAsync;
+            m_link.ReadCallBack = OnReceiveResultAsnc;
             m_link.Connect(strIp, unPort);
+        }
+
+        public void Close()
+        {
+            if(m_link != null)
+                m_link.Close();
+            m_link = null;
+        }
+
+        const int nMaxMsgBufferLen = 1024 * 1024;
+        byte[] m_MsgBuffer = new byte[nMaxMsgBufferLen];
+        public virtual void OnReceiveResultAsnc(LinkCallBackData callBackData)
+        {
+            Console.WriteLine(String.Format("OnConnectResultAsync:{0}",callBackData.CallBackMsg )) ;
         }
 
         public virtual void OnConnectResultAsync(LinkCallBackData callBackData)
@@ -48,7 +64,7 @@ namespace NetWork
 
         public void Send(byte[] message)
         {
-            m_link.Write(message);
+            m_link.Send(message);
         }
 
     }

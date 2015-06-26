@@ -6,28 +6,52 @@ using NetWork.Util;
 
 namespace NetWork.Link
 {
-    public class AsyncLink:Link
+    public class AsyncLink : Link
     {
         struct AsyncWriteData{
             public byte[] data;
         }
 
-        LinkedList<AsyncWriteData> m_lMsgBack = new LinkedList<AsyncWriteData>();
+        public AsyncLink()
+        {
+        }
 
+        // Send Control Datas
+        LinkedList<AsyncWriteData> m_lMsgBack = new LinkedList<AsyncWriteData>();
         SafeCircleList<AsyncWriteData> m_CircleList = new SafeCircleList<AsyncWriteData>();
         SafeCircleList<int> m_AReadFlag = new SafeCircleList<int>();
+
+        //Receive Controls Datas
+        const int nRecieveMaxBytes = 1024;
+        byte[] m_RecieveBuffer = new byte[nRecieveMaxBytes];
 
         String m_strIP = String.Empty;
         ushort m_unPort = 0;
         Socket m_socket = null;
 
-        public void Read(byte[] data)
+        private void ReceiveCallBack(IAsyncResult ar)
         {
+            int nReadLen = m_socket.EndReceive(ar);
+            if (SendCallBack != null)
+            {
+                LinkCallBackData sendCallBack = new LinkCallBackData();
+                sendCallBack.CallBackMsg = eLinkCallBackMsg.Receive_Finished;
+                sendCallBack.Data = m_RecieveBuffer;
+                sendCallBack.Flag = nReadLen;
+                if(ReadCallBack != null)
+                    ReadCallBack(sendCallBack);
+            }
+        }
 
+        private int Receive(byte[] data)
+        {
+            m_socket.BeginReceive(m_RecieveBuffer,0,m_RecieveBuffer.Length, SocketFlags.None, ReceiveCallBack, null);
+            return 0;
         }
 
         void WriteCallBack(IAsyncResult ar)
         {
+            m_socket.EndSend(ar);
             if(!m_CircleList.IsEmpty())
             {
                 m_CircleList.DeQueue();
@@ -42,15 +66,20 @@ namespace NetWork.Link
                     AReadSleep();
                 }
             }
-
+            else
+            {
+                // Impossible
+                AReadSleep();
+            }
         }
+
 
         private void Write_Socket(byte[]data)
         {
             m_socket.BeginSend(data, 0, data.Length, SocketFlags.None, WriteCallBack, null);
         }
 
-        public void Write(byte[] data)
+        public void Send(byte[] data)
         {
             AsyncWriteData writeData = new AsyncWriteData();
             writeData.data = data;
@@ -169,11 +198,6 @@ namespace NetWork.Link
                 }
                 Close();
             }
-        }
-
-        public void Send(byte[] data)
-        {
-
         }
 
         private bool AReadAwake()
