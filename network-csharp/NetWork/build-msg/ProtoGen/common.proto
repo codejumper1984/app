@@ -1,0 +1,5 @@
+enum eMsgType
+{
+	MsgType_PTCGC2GREQ_TEST = 1;
+}
+

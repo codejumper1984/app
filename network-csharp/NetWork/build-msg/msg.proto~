@@ -1,0 +1,11 @@
+enum eMsgType
+{
+	MsgType_PTCGC2GREQ_TEST = 0,
+	MsgType_Login = 1
+}
+
+message PtcC2GReq_Test
+{
+	required eMsgType MsgType = MsgType_PTCGC2GREQ_TEST; 
+	required uint64 version = 0;
+}

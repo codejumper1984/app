@@ -1,0 +1,7 @@
+import "common.proto"
+message PtcC2GReq_Test
+{
+	required eMsgType MsgType = 1 [default=MsgType_PTCGC2GREQ_TEST]; 
+	required int32 version = 2 [default=1];
+	required int32 versiont = 3 [default=100];
+}

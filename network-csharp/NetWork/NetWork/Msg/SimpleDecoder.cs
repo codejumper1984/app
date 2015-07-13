@@ -2,59 +2,73 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using NetWork.Util;
 
 namespace NetWork.Msg
 {
-    class Decoder
+    abstract class Decoder
+    {
+        public List<Msg> DecodedMsg = new List<Msg>();
+        public abstract bool Decode(Byte[] data, int nDataLen);
+        public abstract bool Decode(BinaryStream stream);
+    }
+
+    class SimpleDecoder: Decoder
     {
         const int nMaxMsgBufferLen = 1024 * 1024;
         Byte[] m_MsgBuffer = new Byte[nMaxMsgBufferLen];
         Byte[] m_ProtocalBuffer = new Byte[nMaxMsgBufferLen];
+
         int nOffset = 0;
-        int nMsgLen = 0;
 
-        public bool Decode(byte[] inputBuffer, int nDataLen)
+        public override bool Decode(BinaryStream stream)
         {
-            int nNeedByte = nMsgLen - nOffset;
-            int nBufferOffset = 0;
-            if( nBufferOffset + nNeedByte <= nDataLen )
-            {
-                // can decode one msg
-                // copy
-                CopyByte(inputBuffer, nBufferOffset, m_MsgBuffer, nOffset, nNeedByte);
-                nBufferOffset += nNeedByte;
-                nOffset += nNeedByte;
-
-                // decode
-                GenHeadMsg();
-                nOffset = 0;
-            }
-
-            //Copy Left
-            int nLeftInputByte = nDataLen - nNeedByte;
-            if (nLeftInputByte < LeftDequeSize())
-            {
-                CopyByte(m_MsgBuffer, nBufferOffset, m_MsgBuffer, nOffset, nDataLen - nNeedByte);
-                nOffset += nNeedByte;
-                IteProcMsg();
-            }
-            else
-            {
-                // LeftMsg Toll Long
-                return false;
-            }
             return true;
+        }
+
+        public override bool Decode(byte[] inputBuffer, int nDataLen)
+        {
+            int nLeftBuffer = m_MsgBuffer.Length - nOffset;
+            if (nLeftBuffer < nDataLen)
+            {
+                EnLargeBuffer(nDataLen - nLeftBuffer);
+            }
+            CopyByte(inputBuffer, 0, m_MsgBuffer, nOffset, nDataLen);
+            nOffset += nDataLen;
+            IteProcMsg();
+            return true;
+        }
+
+        public void EnLargeBuffer(int nEnlargeLen)
+        {
+            int nNewLen = m_MsgBuffer.Length  + nEnlargeLen;
+            Byte[] newMsgBuffer = new byte[nNewLen];
+            if(nOffset > 0)
+            {
+                CopyByte(m_MsgBuffer, 0, newMsgBuffer, 0, nOffset );
+            }
         }
 
         private void IteProcMsg()
         {
             int nBeginIdx = 0;
             int nMsgLen = GetMsgLen(nBeginIdx);
-            while(nMsgLen > 0 && nBeginIdx + nMsgLen < nOffset)
+            while(nMsgLen > 0 && nBeginIdx + nMsgLen <= nOffset)
             {
                 GenMsg(nBeginIdx, nBeginIdx + nMsgLen);
                 nBeginIdx += nMsgLen;
                 nMsgLen = GetMsgLen(nBeginIdx);
+            }
+
+            if(nMsgLen > 0 )
+            {
+                // Msg Not Complete
+                nOffset = nOffset - nBeginIdx;
+                if (nOffset > 0)
+                {
+                    // From back to front, Copy Order!!
+                    CopyByte(m_MsgBuffer, 0, m_MsgBuffer, nBeginIdx, nOffset - 1);
+                }
             }
         }
 
@@ -82,11 +96,6 @@ namespace NetWork.Msg
         private void GenMsg(int nBeginIdx, int nEndIdx)
         {
             CopyByte(m_MsgBuffer,nBeginIdx,m_ProtocalBuffer,0, nEndIdx - nBeginIdx + 1);
-        }
-
-        private void GenHeadMsg()
-        {
-            GenMsg(0,nOffset);
         }
 
         private int CopyByte(Byte[] src, int nSrcOffset,Byte[] dest, int nDestOffest,int nCopyLen)

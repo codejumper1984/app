@@ -16,7 +16,6 @@ namespace NetWork
 
     public class TcpSession
     {
-        Cir
         NetWork.Link.Link m_link = null;
         public String strServerIp
         {

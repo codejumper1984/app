@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Net;
 using NetWork.Util;
+using NetWork.Msg;
 
 namespace NetWork.Link
 {
@@ -17,35 +18,57 @@ namespace NetWork.Link
         }
 
         // Send Control Datas
+
         LinkedList<AsyncWriteData> m_lMsgBack = new LinkedList<AsyncWriteData>();
+
         SafeCircleList<AsyncWriteData> m_CircleList = new SafeCircleList<AsyncWriteData>();
+
         SafeCircleList<int> m_AReadFlag = new SafeCircleList<int>();
 
-        //Receive Controls Datas
-        const int nRecieveMaxBytes = 1024;
-        byte[] m_RecieveBuffer = new byte[nRecieveMaxBytes];
+
+        //Receive Buffer
+        BinaryStream m_InputBufferStream = new BinaryStream();
+
+        SimpleDecoder decoder = new SimpleDecoder();
 
         String m_strIP = String.Empty;
+
         ushort m_unPort = 0;
+
         Socket m_socket = null;
 
+        //接收到数据后的回调，回调线程调用
         private void ReceiveCallBack(IAsyncResult ar)
         {
             int nReadLen = m_socket.EndReceive(ar);
             if (SendCallBack != null)
             {
-                LinkCallBackData sendCallBack = new LinkCallBackData();
-                sendCallBack.CallBackMsg = eLinkCallBackMsg.Receive_Finished;
-                sendCallBack.Data = m_RecieveBuffer;
-                sendCallBack.Flag = nReadLen;
+                decoder.Decode(m_InputBufferStream);
                 if(ReadCallBack != null)
-                    ReadCallBack(sendCallBack);
+                {
+                    LinkCallBackData sendCallBack = new LinkCallBackData();
+                    sendCallBack.CallBackMsg = eLinkCallBackMsg.Receive_Finished;
+                    sendCallBack.Flag = nReadLen;
+                    for (int i = 0; i < decoder.DecodedMsg.Count; i++)
+                    {
+                        sendCallBack.Data = decoder.DecodedMsg[i];
+                        ReadCallBack(sendCallBack);
+                    }
+                }
+                decoder.DecodedMsg.Clear();
             }
+            if(m_socket != null && m_socket.Connected)
+                Receive();
         }
 
-        private int Receive(byte[] data)
+        public int Receive(byte[] inputData)
         {
-            m_socket.BeginReceive(m_RecieveBuffer,0,m_RecieveBuffer.Length, SocketFlags.None, ReceiveCallBack, null);
+            return 0;
+        }
+
+        private int Receive()
+        {
+            m_socket.BeginReceive(m_InputBufferStream.Data,m_InputBufferStream.End,m_InputBufferStream.Capacity(), SocketFlags.None, ReceiveCallBack, null);
             return 0;
         }
 
@@ -73,8 +96,7 @@ namespace NetWork.Link
             }
         }
 
-
-        private void Write_Socket(byte[]data)
+        private void Write_Socket(byte[] data)
         {
             m_socket.BeginSend(data, 0, data.Length, SocketFlags.None, WriteCallBack, null);
         }
@@ -127,7 +149,6 @@ namespace NetWork.Link
                 m_socket = null;
             }
         }
-
 
         public bool IsConnected
         {
