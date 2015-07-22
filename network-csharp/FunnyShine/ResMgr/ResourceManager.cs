@@ -9,10 +9,11 @@ namespace ResMgr
 {
     class  ResourceData
     {
-        float fLoadedTime;
-        float fLatestUsedTime;
-        List<UnityEngine.Object> loadedObjs;
-        bool bLoaded;
+        public float fLoadedTime;
+        public float fLatestUsedTime;
+        public List<UnityEngine.Object> loadedObjs;
+        public bool bLoaded;
+        public int loadTaskID;
     }
 
     enum eResClear
@@ -37,6 +38,7 @@ namespace ResMgr
     delegate int InstanceFunc(List<UnityEngine.Object> objList);
     public class Resource
     {
+        public int LoadTaskID = 0;
         public List<UnityEngine.Object> objList = new List<UnityEngine.Object>();
         public float LastVisitedTime = 0;
         private int nRefCount = 0;
@@ -85,34 +87,38 @@ namespace ResMgr
 
     }
 
-    public class ResTask : Task
+    public class ResLoadTask : Task
     {
-        public string resPath;
+        private int resouceId;
         public eResLoadCourtinue corroutineFlag;
-        public float VisitTime = 0;
-        public ResTask(String resPath, int nId, eResLoadCourtinue flag ,eTaskStatus eStatus)
+        public ResLoadTask(int nId, int nResId, eResLoadCourtinue flag)
         {
-            this.resPath = resPath;
             this.Id = nId;
             this.corroutineFlag = flag;
-            Status = eStatus;
+            this.resouceId = nResId;
         }
 
         public WWW www = null;
         IEnumerator doTask()
         {
-            www = new WWW(resPath);
-            yield return www;
-            ResourceManager.singleton.OnResLoad(this);
-            www = null;
-        }
-        public InstanceFunc func = null;
-        public eTaskStatus Status
-        {
-            get;
-            set;
-        }
+            Resource res = ResourceManager.singleton.GetResource(resouceId);
+            if(res != null)
+            {
+                www = new WWW(res.Path);
+                yield return www;
+                UnityEngine.Object obj = www.assetBundle.mainAsset;
+                if (obj != null)
+                {
+                    res.AddObj(www.assetBundle.mainAsset);
+                }
+                else
+                {
+                    ResourceManager.singleton.OnResLoadFailed(resouceId);
+                }
 
+                www = null;
+            }
+        }
     }
 
     class InstanceTask
@@ -156,7 +162,7 @@ namespace ResMgr
         CorroutineSession normalCorSession = new CorroutineSession(nMaxNormalCortinueNum);
         CorroutineSession highCorSession = new CorroutineSession(0);
 
-        Dictionary<string, Resource> resouceCacheDict = new Dictionary<string, Resource>();
+        Dictionary<string, int> resouceCacheDict = new Dictionary<string, Resource>();
 
         Dictionary<int, ResTask> resLoadTaskIdDict = new Dictionary<int, ResTask>();
         //List<InstanceTask> insTaskList = new List<InstanceTask>();
