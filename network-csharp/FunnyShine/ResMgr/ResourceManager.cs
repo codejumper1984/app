@@ -7,43 +7,119 @@ using UnityEngine;
 
 namespace ResMgr
 {
-    class  ResourceData
+
+    //加载状态
+    enum eResLoadStatus
     {
-        public float fLoadedTime;
-        public float fLatestUsedTime;
-        public List<UnityEngine.Object> loadedObjs;
-        public bool bLoaded;
-        public int loadTaskID;
+        Loading = 1,
+        Loaded,
     }
 
-    enum eResClear
+    //资源清理策略
+    enum eResClearStrategy
     {
         Auto,
         Manual,
     }
+    
+    //资源加载回调策略
+    enum eResUseCallbackStrategy
+    {
+        Immediate = 1,
+        Delay = 2
+    }
 
-    enum eResLoadCourtinue
+    //使用协程类型
+    enum eLoadCourtinueType
     {
         Normal,
         High,
     }
 
-    enum eInstancePriority
+    //回调函数类型
+    delegate int ResUseCallBack(List<UnityEngine.Object> objList);
+
+    //如何本文件访问，其他无法访问
+
+    //引用基类
+    public class RefBase
     {
-        Immediate,
-        Normal,
-        Delayed,
+        public RefBase(int refID, ResUseCallBack callBack)
+        {
+            this.refID = refID;
+            this.callBack = callBack;
+        }
+        private ResUseCallBack callBack;
+        public ResUseCallBack CallBack
+        {
+            get { return callBack; }
+        }
+
+        private int refID;
+        public int RefID
+        {
+            get { return RefID; }
+        }
     }
 
-    delegate int InstanceFunc(List<UnityEngine.Object> objList);
+    //资源的加载引用
+    public class LoadRef:RefBase
+    {
+        public LoadRef(int refID, ResUseCallBack callBack,eResUseCallbackStrategy insStrategy):base(refID,callBack)
+        {
+            this.insStrategy = insStrategy;
+        }
+        eResUseCallbackStrategy insStrategy;
+    }
+
+    //资源的实例化引用
+    public class InsRef:RefBase
+    {
+        public InsRef(int refID, ResUseCallBack callBack,Resource res):base(refID,callBack)
+        {
+            this.res = res;
+        }
+        private Resource res;
+        public Resource resource
+        {
+            get { return res; }
+        }
+    }
+
     public class Resource
     {
-        public int LoadTaskID = 0;
-        public List<UnityEngine.Object> objList = new List<UnityEngine.Object>();
-        public float LastVisitedTime = 0;
-        private int nRefCount = 0;
+        static int nNextResId = 0;
+        public static Resource NewResource(string path)
+        {
+            Resource res =  new Resource(path, nNextResId << 8);
+            return res;
+        }
 
-        public int Id
+        int nNextRefId = 0;
+        public void AddLoadRef(ResUseCallBack callBack,eResUseCallbackStrategy insStrategy)
+        {
+            nNextRefId++;
+            loadList.Add(new LoadRef(nNextRefId, callBack, insStrategy));
+        }
+
+        public int LoadTaskID
+        {
+            get;
+            set;
+        }
+
+        private List<UnityEngine.Object> objList = new List<UnityEngine.Object>();
+
+        List<LoadRef> loadList = new List<LoadRef>();
+        List<InsRef> insList = new List<InsRef>();
+
+        private float LastVisitedTime = 0;
+        public void UpdateVisitTime()
+        {
+            LastVisitedTime = Time.time;
+        }
+
+        public int ID
         {
             get;
             set;
@@ -55,34 +131,10 @@ namespace ResMgr
             set;
         }
 
-        public Resource(string path,int id)
+        private Resource(string path,int id)
         {
             Path = path;
-            Id =id;
-        }
-
-        public void AddObj(UnityEngine.Object obj)
-        {
-            objList.Add(obj);
-        }
-
-        public void AddRef()
-        {
-            nRefCount++;
-        }
-
-        public void RemoveRef()
-        {
-            nRefCount--;
-            if(nRefCount == 0)
-            {
-                Release();
-            }
-        }
-
-        private void Release()
-        {
-
+            ID =id;
         }
 
     }
@@ -121,109 +173,35 @@ namespace ResMgr
         }
     }
 
-    class InstanceTask
-    {
-        public ResLoadTask task = null;
-        public InstanceFunc func = null;
-        public ResLoadTask resTask = null;
-    }
-
-    enum eTaskStatus
-    {
-        Load,
-        Ins,
-    }
-
-    class ResTaskInfo
-    {
-        eTaskStatus taskStatus;
-        int nId;
-    }
-
     public class ResourceManager:Singleton<ResourceManager>
     {
-        int nResId = 0;
-        public int OnResLoad(ResTask task)
+        protected int NewResLoadTask(Resource res,eLoadCourtinueType corroutineType)
         {
-            if(!resouceCacheDict.ContainsKey(task.resPath))
-            {
-                nResId++;
-                Resource res = new Resource(task.resPath, nResId);
-                res.AddObj(task.www.assetBundle.mainAsset);
-                res.AddRef();
-                task.www.assetBundle.Unload(false);
-                return nResId;
-            }
+            ResLoadTask task = new ResLoadTask(res);
             return 0;
         }
 
-        MonoBehaviour cortinueBehaviour;
-        const int nMaxNormalCortinueNum = 20;
-        CorroutineSession normalCorSession = new CorroutineSession(nMaxNormalCortinueNum);
-        CorroutineSession highCorSession = new CorroutineSession(0);
-
-        Dictionary<string, int> resouceCacheDict = new Dictionary<string, Resource>();
-
-        Dictionary<int, ResTask> resLoadTaskIdDict = new Dictionary<int, ResTask>();
-        //List<InstanceTask> insTaskList = new List<InstanceTask>();
-        //Dictionary<int, ResTaskInfo> resInfoIdDict = new Dictionary<int, ResTaskInfo>();
-        //Dictionary<string, int> resInfoIdPath = new Dictionary<string, int>();
-
-
-        int nTaskId = 0;
-
-        public int LoadResource(string path,eResLoadCourtinue corroutineFlag, eInstancePriority insFlag, InstanceFunc insFunc)
+        protected Resource NewResourceAndLoad(String path,ResUseCallBack callBack,eResUseCallbackStrategy insStrategy, eLoadCourtinueType corroutineType)
         {
-            if(resouceCacheDict.ContainsKey(path))
-            {
-                Resource res = resouceCacheDict[path];
-                res.AddRef();
-                if (insFlag == eInstancePriority.Immediate)
-                {
-                    insFunc(res.objList);
-                    res.RemoveRef();
-                    return -1;
-                }
-                else
-                {
-                    InstanceTask insTask = new InstanceTask();
-                    insTask.func = insFunc;
-                    insTask.task = task;
-                    insTaskList.Add(insTask);
-                    return 0;
-                }
-            }
-            else
-            {
-                nTaskId++;
-                ResTask task = new ResTask(path,nTaskId,corroutineFlag,eTaskStatus.Load);
-                task.VisitTime= Time.time;
-                normalCorSession.AddTask(task);
-            }
-            return nTaskId;
+            Resource res = Resource.NewResource(path);
+            res.LoadTaskID = NewResLoadTask(res,corroutineType);
+            res.AddLoadRef(callBack, insStrategy);
+            return res;
+        }
+
+        int nResId = 0;
+
+        public int LoadResource(string path,eLoadCourtinueType corroutineFlag, eResUseCallbackStrategy insFlag, ResUseCallBack callBack)
+        {
+            return 0;
         }
 
         public void RemoveLoad(int nId)
         {
-            if(resLoadTaskIdDict.ContainsKey(nId))
-            {
-                ResLoadTask restask = resLoadTaskIdDict[nId];
-                if(restask.corroutineFlag== eResLoadCourtinue.Normal)
-                {
-                    normalCorSession.StopTask(restask);
-                }
-            }
         }
 
-        private int nFrameMaxInsCot = 0;
         public void Update()
         {
-            for(int nFrameDelayInsCot = 0;nFrameDelayInsCot < nFrameMaxInsCot && nFrameDelayInsCot < insTaskList.Count;nFrameDelayInsCot++)
-            {
-                InstanceTask instask = insTaskList[nFrameDelayInsCot];
-                instask.func(instask.resTask.objList);
-                instask.resTask.RemoveRef();
-            }
         }
     }
 }
