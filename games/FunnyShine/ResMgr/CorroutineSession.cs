@@ -14,9 +14,10 @@ namespace ResMgr
         private int nMaxCorroutine = 0;
         List<Task> taskList = new List<Task>();
 
-        public CorroutineSession(int nMaxCorroutine)
+        public CorroutineSession(int nMaxCorroutine, MonoBehaviour corroutineBehaviour)
         {
             this.nMaxCorroutine = nMaxCorroutine;
+            this.corroutineBehaviour = corroutineBehaviour;
         }
 
         public void Init()
@@ -34,11 +35,11 @@ namespace ResMgr
 
         }
 
-        public int StopTask(Task task)
+        public int StopTask(int nTaskID)
         {
             for (int i = 0; i < taskList.Count; i++)
             {
-                if(taskList[i].Id == task.Id)
+                if (taskList[i].Id == nTaskID)
                 {
                     taskList.RemoveAt(i);
                     return 1;

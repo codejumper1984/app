@@ -26,14 +26,16 @@ namespace ResMgr
     enum eResUseCallbackStrategy
     {
         Immediate = 1,
-        Delay = 2
+        Delay = 2,
+        Self = 3
     }
 
     //使用协程类型
-    enum eLoadCourtinueType
+    enum eLoadType
     {
-        Normal,
-        High,
+        CorroutineNormal = 1,
+        CorroutineHigh,
+
     }
 
     //回调函数类型
@@ -42,9 +44,9 @@ namespace ResMgr
     //如何本文件访问，其他无法访问
 
     //引用基类
-    public class RefBase
+    public class ResRefBase
     {
-        public RefBase(int refID, ResUseCallBack callBack)
+        public ResRefBase(int refID, ResUseCallBack callBack)
         {
             this.refID = refID;
             this.callBack = callBack;
@@ -63,17 +65,17 @@ namespace ResMgr
     }
 
     //资源的加载引用
-    public class LoadRef:RefBase
+    public class LoadRef:ResRefBase
     {
         public LoadRef(int refID, ResUseCallBack callBack,eResUseCallbackStrategy insStrategy):base(refID,callBack)
         {
             this.insStrategy = insStrategy;
         }
-        eResUseCallbackStrategy insStrategy;
+        public eResUseCallbackStrategy insStrategy;
     }
 
     //资源的实例化引用
-    public class InsRef:RefBase
+    public class InsRef:ResRefBase
     {
         public InsRef(int refID, ResUseCallBack callBack,Resource res):base(refID,callBack)
         {
@@ -84,39 +86,99 @@ namespace ResMgr
         {
             get { return res; }
         }
+        public void DoIns()
+        {
+            CallBack(res.objList);
+            res.RemoveRef(RefID);
+        }
+    }
+
+    internal class FreeUseRef:ResRefBase
+    {
+        internal FreeUseRef(int nID)
+            : base(nID, null)
+        {
+
+        }
     }
 
     public class Resource
     {
+        static const int nResIDShitf = 8;
         static int nNextResId = 0;
-        public static Resource NewResource(string path)
+        public static Resource NewResource(string path, eResClearStrategy eClearFlag)
         {
-            Resource res =  new Resource(path, nNextResId << 8);
+            Resource res = new Resource(path,eClearFlag, nResIDShitf << nResIDShitf);
             return res;
         }
-
+        public eResClearStrategy eClearFlag;
+        // 引用ID
         int nNextRefId = 0;
-        public void AddLoadRef(ResUseCallBack callBack,eResUseCallbackStrategy insStrategy)
+        //添加加载引用
+        public LoadRef AddLoadRef(ResUseCallBack callBack, eResUseCallbackStrategy insStrategy)
         {
             nNextRefId++;
-            loadList.Add(new LoadRef(nNextRefId, callBack, insStrategy));
+            LoadRef loadRef = new LoadRef(nNextRefId, callBack, insStrategy);
+            loadDict[loadRef.RefID] = loadRef;
+            return loadRef;
+        }
+        public InsRef ChgInsRef(int nRefId,ResUseCallBack callBack)
+        {
+            InsRef insRef = new InsRef(nRefId, callBack, this);
+            insDict[insRef.RefID] = insRef;
+            return insRef;
+        }
+        public InsRef AddInsRef(ResUseCallBack callBack)
+        {
+            nNextRefId++;
+            InsRef insRef = new InsRef(nNextRefId, callBack, this);
+            insDict[insRef.RefID] = insRef;
+            return insRef;
+        }
+        public FreeUseRef ChgFreeUseRef(int nRef)
+        {
+            FreeUseRef freeUseRef = new FreeUseRef(nNextRefId);
+            freeUseDict[freeUseRef.RefID] = freeUseRef;
+            return freeUseRef;
+        }
+        public FreeUseRef AddFreeUseRef()
+        {
+            nNextRefId++;
+            FreeUseRef freeUseRef = new FreeUseRef(nNextRefId);
+            freeUseDict[freeUseRef.RefID] = freeUseRef;
+            return freeUseRef;
         }
 
-        public int LoadTaskID
+        public void AddObject(UnityEngine.Object obj)
+        {
+            objList.Add(obj);
+        }
+
+        public ResLoadTask LoadTask
         {
             get;
             set;
         }
 
-        private List<UnityEngine.Object> objList = new List<UnityEngine.Object>();
+        public int RefCount
+        {
+            get { return loadDict.Count + insDict.Count + freeUseDict.Count; }
+        }
 
-        List<LoadRef> loadList = new List<LoadRef>();
-        List<InsRef> insList = new List<InsRef>();
+        public List<UnityEngine.Object> objList = new List<UnityEngine.Object>();
 
-        private float LastVisitedTime = 0;
+        internal Dictionary<int, LoadRef> loadDict = new Dictionary<int, LoadRef>();
+        internal Dictionary<int, InsRef> insDict = new Dictionary<int, InsRef>();
+        internal Dictionary<int, FreeUseRef> freeUseDict = new Dictionary<int, FreeUseRef>();
+
+        public float LastVisitedTime
+        {
+            get { return lastVisitedTime; }
+        }
+        private float lastVisitedTime = 0;
         public void UpdateVisitTime()
         {
-            LastVisitedTime = Time.time;
+            lastVisitedTime = Time.time;
         }
 
         public int ID
@@ -130,30 +192,103 @@ namespace ResMgr
             get;
             set;
         }
+        public void Release()
+        {
+            foreach(UnityEngine.Object obj in objList)
+            {
+                GameObject.Destroy(obj);
+            }
+            objList.Clear();
+        }
 
-        private Resource(string path,int id)
+        private Resource(string path, eResClearStrategy eClearFlag, int id)
         {
             Path = path;
             ID =id;
+            this.eClearFlag = eClearFlag;
+        }
+        internal void OnLoadFinished()
+        {
+         
+            foreach (KeyValuePair<int, LoadRef> loadRefInfo in loadDict)
+            {
+                switch (loadRefInfo.Value.insStrategy)
+                {
+                    case eResUseCallbackStrategy.Immediate:
+                        {
+                            loadRefInfo.Value.CallBack(objList);
+                        }
+                        break;
+                    case eResUseCallbackStrategy.Delay:
+                        {
+                            int nRefId = loadRefInfo.Value.RefID;
+                            ChgInsRef(nRefId, loadRefInfo.Value.CallBack);
+                        }
+                        break;
+                    case eResUseCallbackStrategy.Self:
+                        {
+                            int nRefId = loadRefInfo.Value.RefID;
+                            ChgFreeUseRef(nRefId);
+                        }
+                        break;
+                }
+            }
+          
+            ResourceManager.singleton.OnResLoadFinished(this);
         }
 
+        static int GetRefId(int nResID)
+        {
+            return nResID & ~(nResIDShitf - 1);
+        }
+
+        internal int RemoveRef(int nId)
+        {
+            int nRefId = GetRefId(nId);
+            if(loadDict.ContainsKey(nRefId))
+            {
+                loadDict.Remove(nRefId);
+                if(loadDict.Count == 0 )
+                {
+                    ResourceManager.singleton.TryCancelLoad(LoadTask);
+                }
+                return 0;
+            }
+            if (insDict.ContainsKey(nRefId))
+            {
+                insDict.Remove(nRefId);
+                return 0;
+            }
+            if (freeUseDict.ContainsKey(nRefId))
+            {
+                freeUseDict.Remove(nRefId);
+                return 0;
+            }
+            return -1;
+        }
     }
 
-    public class ResLoadTask : Task
+    internal class ResLoadTask : Task
     {
-        private int resouceId;
-        public eResLoadCourtinue corroutineFlag;
-        public ResLoadTask(int nId, int nResId, eResLoadCourtinue flag)
+        static int nNextTaskID = 0;
+        internal static ResLoadTask NewTask( Resource res, eLoadType flag)
+        {
+            nNextTaskID++;
+            return new ResLoadTask(nNextTaskID,res, flag);
+        }
+        private Resource res;
+        public eLoadType LoadType;
+        private ResLoadTask(int nId, Resource res, eLoadType flag)
         {
             this.Id = nId;
-            this.corroutineFlag = flag;
-            this.resouceId = nResId;
+            this.LoadType = flag;
+            this.res = res;
         }
 
         public WWW www = null;
         IEnumerator doTask()
         {
-            Resource res = ResourceManager.singleton.GetResource(resouceId);
+           
             if(res != null)
             {
                 www = new WWW(res.Path);
@@ -161,47 +296,189 @@ namespace ResMgr
                 UnityEngine.Object obj = www.assetBundle.mainAsset;
                 if (obj != null)
                 {
-                    res.AddObj(www.assetBundle.mainAsset);
+                    res.AddObject(www.assetBundle.mainAsset);
+                    res.OnLoadFinished();
                 }
-                else
-                {
-                    ResourceManager.singleton.OnResLoadFailed(resouceId);
-                }
-
                 www = null;
             }
+        }
+
+        internal static void CancelLoad(int nLoadTask)
+        {
+            throw new NotImplementedException();
         }
     }
 
     public class ResourceManager:Singleton<ResourceManager>
     {
-        protected int NewResLoadTask(Resource res,eLoadCourtinueType corroutineType)
+        CorroutineSession normalSession = null;
+        Dictionary<string, Resource> pathResDict = new Dictionary<string, Resource>();
+        Dictionary<int, Resource> idResDict = new Dictionary<int, Resource>();
+        List<InsRef> delayedInsList = new List<InsRef>();
+
+        public void TryCancelLoad(ResLoadTask loadTask)
         {
-            ResLoadTask task = new ResLoadTask(res);
+            if (loadTask.LoadType == ResMgr.eLoadType.CorroutineNormal)
+                normalSession.StopTask(loadTask.Id);
+        }
+        protected int StartLoad(Resource res,ResUseCallBack callBack,eResUseCallbackStrategy insStrategy, eLoadType corroutineType)
+        {
+            if (normalSession == null)
+                return -1;
+          
+            ResLoadTask loadTask = ResLoadTask.NewTask(res, corroutineType);
+            res.LoadTask = loadTask;
+            int loadrefId = res.AddLoadRef(callBack, insStrategy).RefID;
+            switch (corroutineType)
+            {
+                case eLoadType.CorroutineNormal:
+                    {
+                        normalSession.AddTask(loadTask);
+                    }
+                    break;
+            }
+            return res.ID + loadrefId;
+        }
+
+        public int Init(MonoBehaviour corroutineBehav)
+        {
+            normalSession = new CorroutineSession(100, corroutineBehav);
             return 0;
         }
 
-        protected Resource NewResourceAndLoad(String path,ResUseCallBack callBack,eResUseCallbackStrategy insStrategy, eLoadCourtinueType corroutineType)
+        /**
+         *延迟实例化
+         *创建延迟实例化应用，加入全局延迟实例化队列中
+         */
+        int DelayIns(Resource res, ResUseCallBack callBack)
         {
-            Resource res = Resource.NewResource(path);
-            res.LoadTaskID = NewResLoadTask(res,corroutineType);
-            res.AddLoadRef(callBack, insStrategy);
+            InsRef insRef = res.AddInsRef(callBack);
+            delayedInsList.Add(insRef);
+            int resID = res.ID + insRef.RefID;
+            idResDict[resID] = res;
+            return resID;
+        }
+
+        int ImmediateIns(Resource res, ResUseCallBack callBack)
+        {
+            callBack(res.objList);
+            return 0;
+        }
+
+        int FreeUseRef(Resource res)
+        {
+            FreeUseRef freeRef = res.AddFreeUseRef();
+            int resID = res.ID + freeRef.RefID;
+            idResDict[resID] = res;
+            return resID;
+        }
+
+        public int LoadResource(string path, ResUseCallBack callBack, eLoadType corroutineFlag, eResUseCallbackStrategy insFlag, eResClearStrategy eResClearFlag)
+        {
+            int resID = 0;
+            Resource resouce;
+            if (pathResDict.TryGetValue(path, out resouce))
+            {
+                switch(insFlag)
+                {
+                    case eResUseCallbackStrategy.Delay:
+                        {
+                            resID = DelayIns(resouce, callBack);    
+                        }
+                        break;
+                    case eResUseCallbackStrategy.Immediate:
+                        {
+                            resID = ImmediateIns(resouce, callBack);    
+                        }
+                        break;
+                    case eResUseCallbackStrategy.Self:
+                        {
+                            resID = FreeUseRef(resouce);
+                        }
+                        break;
+
+                }
+            }
+            else
+            {
+                Resource res = Resource.NewResource(path, eResClearFlag);
+                resID = StartLoad(res,callBack, insFlag,corroutineFlag);
+
+                if(resID != 0)
+                {
+                    pathResDict[res.Path] = res;
+                    idResDict[resID] = res;
+                }
+                
+            }
+            return resID;
+        }
+
+        public int RemoveResouceRef(int nId)
+        {
+            Resource res;
+            if (!idResDict.TryGetValue(nId, out res))
+                return -1;
+             res.RemoveRef(nId);
+             idResDict.Remove(nId);
+             return 0;
+        }
+
+        public Resource GetResource(int nId)
+        {
+            Resource res;
+            if(!idResDict.TryGetValue(nId,out res))
+            {
+                res = null;
+            }
+            res = null;
             return res;
         }
 
-        int nResId = 0;
-
-        public int LoadResource(string path,eLoadCourtinueType corroutineFlag, eResUseCallbackStrategy insFlag, ResUseCallBack callBack)
-        {
-            return 0;
-        }
-
-        public void RemoveLoad(int nId)
-        {
-        }
-
+        int nFrameInsMaxCount = 10;
+        float resDelMinTime = 60 * 10;
+        List<string> releaseResList = new List<string>();
         public void Update()
         {
+            int nInsCount = 0;
+            for(int i = 0; i < delayedInsList.Count;i++)
+            {
+                if(nInsCount< nFrameInsMaxCount)
+                { 
+                    InsRef insRef = delayedInsList[i];
+                    insRef.DoIns();
+                    nInsCount++;
+                }
+                else
+                {
+                    break;
+                }
+            }
+            releaseResList.Clear();
+            foreach (KeyValuePair<string, Resource> resInfo in pathResDict)
+            {
+                Resource res = resInfo.Value;
+                if(res.RefCount == 0)
+                {
+                    if(Time.time - res.LastVisitedTime > resDelMinTime)
+                    {
+                        releaseResList.Add(res.Path);
+                        res.Release();
+                    }
+                }
+            }
+            for (int i = 0; i < releaseResList.Count; i++)
+            {
+                pathResDict.Remove(releaseResList[i]);
+            }
+        }
+
+        internal void OnResLoadFinished(Resource resource)
+        {
+            foreach(KeyValuePair<int,InsRef> insRefInfo in resource.insDict)
+            {
+                delayedInsList.Add(insRefInfo.Value);
+            }
         }
     }
 }
