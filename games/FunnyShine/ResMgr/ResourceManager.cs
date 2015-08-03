@@ -117,8 +117,8 @@ namespace ResMgr
         //添加加载引用
         public LoadRef AddLoadRef(ResUseCallBack callBack, eResUseCallbackStrategy insStrategy)
         {
-            nNextRefId++;
-            LoadRef loadRef = new LoadRef(nNextRefId, callBack, insStrategy);
+            int nRefId = NextRefID();
+            LoadRef loadRef = new LoadRef(nRefId, callBack, insStrategy);
             loadDict[loadRef.RefID] = loadRef;
             return loadRef;
         }
@@ -130,23 +130,29 @@ namespace ResMgr
         }
         public InsRef AddInsRef(ResUseCallBack callBack)
         {
-            nNextRefId++;
-            InsRef insRef = new InsRef(nNextRefId, callBack, this);
+            int nRefId = NextRefID();
+            InsRef insRef = new InsRef(nRefId, callBack, this);
             insDict[insRef.RefID] = insRef;
             return insRef;
         }
         public FreeUseRef ChgFreeUseRef(int nRef)
         {
-            FreeUseRef freeUseRef = new FreeUseRef(nNextRefId);
+            FreeUseRef freeUseRef = new FreeUseRef(nRef);
             freeUseDict[freeUseRef.RefID] = freeUseRef;
             return freeUseRef;
         }
         public FreeUseRef AddFreeUseRef()
         {
-            nNextRefId++;
-            FreeUseRef freeUseRef = new FreeUseRef(nNextRefId);
+            int nRefId = NextRefID();
+            FreeUseRef freeUseRef = new FreeUseRef(nRefId);
             freeUseDict[freeUseRef.RefID] = freeUseRef;
             return freeUseRef;
+        }
+
+        public int NextRefID()
+        {
+            nNextRefId = (nNextRefId + 1) & (^(nResIDShitf - 1));
+            return ID + nNextRefId;
         }
 
         public void AddObject(UnityEngine.Object obj)
@@ -210,30 +216,6 @@ namespace ResMgr
         internal void OnLoadFinished()
         {
          
-            foreach (KeyValuePair<int, LoadRef> loadRefInfo in loadDict)
-            {
-                switch (loadRefInfo.Value.insStrategy)
-                {
-                    case eResUseCallbackStrategy.Immediate:
-                        {
-                            loadRefInfo.Value.CallBack(objList);
-                        }
-                        break;
-                    case eResUseCallbackStrategy.Delay:
-                        {
-                            int nRefId = loadRefInfo.Value.RefID;
-                            ChgInsRef(nRefId, loadRefInfo.Value.CallBack);
-                        }
-                        break;
-                    case eResUseCallbackStrategy.Self:
-                        {
-                            int nRefId = loadRefInfo.Value.RefID;
-                            ChgFreeUseRef(nRefId);
-                        }
-                        break;
-                }
-            }
-          
             ResourceManager.singleton.OnResLoadFinished(this);
         }
 
@@ -337,7 +319,7 @@ namespace ResMgr
                     }
                     break;
             }
-            return res.ID + loadrefId;
+            return loadrefId;
         }
 
         public int Init(MonoBehaviour corroutineBehav)
@@ -438,6 +420,8 @@ namespace ResMgr
         int nFrameInsMaxCount = 10;
         float resDelMinTime = 60 * 10;
         List<string> releaseResList = new List<string>();
+        private float m_fLastFreeResTime = 0;
+        private float m_fFreeResTime = 3 * 60;
         public void Update()
         {
             int nInsCount = 0;
@@ -447,6 +431,8 @@ namespace ResMgr
                 { 
                     InsRef insRef = delayedInsList[i];
                     insRef.DoIns();
+                    int nRefId = insRef.RefID;
+                    idResDict.Remove(nRefId);
                     nInsCount++;
                 }
                 else
@@ -454,27 +440,59 @@ namespace ResMgr
                     break;
                 }
             }
-            releaseResList.Clear();
-            foreach (KeyValuePair<string, Resource> resInfo in pathResDict)
+
+            if(Time.time - m_fLastFreeResTime > m_fFreeResTime)
             {
-                Resource res = resInfo.Value;
-                if(res.RefCount == 0)
+                m_fLastFreeResTime = Time.time;
+
+                releaseResList.Clear();
+                foreach (KeyValuePair<string, Resource> resInfo in pathResDict)
                 {
-                    if(Time.time - res.LastVisitedTime > resDelMinTime)
+                    Resource res = resInfo.Value;
+                    if (res.RefCount == 0)
                     {
-                        releaseResList.Add(res.Path);
-                        res.Release();
+                        if (Time.time - res.LastVisitedTime > resDelMinTime)
+                        {
+                            releaseResList.Add(res.Path);
+                            res.Release();
+                        }
                     }
                 }
-            }
-            for (int i = 0; i < releaseResList.Count; i++)
-            {
-                pathResDict.Remove(releaseResList[i]);
+                for (int i = 0; i < releaseResList.Count; i++)
+                {
+                    pathResDict.Remove(releaseResList[i]);
+                }
             }
         }
 
         internal void OnResLoadFinished(Resource resource)
         {
+            foreach (KeyValuePair<int, LoadRef> loadRefInfo in resource.loadDict)
+            {
+                switch (loadRefInfo.Value.insStrategy)
+                {
+                    case eResUseCallbackStrategy.Immediate:
+                        {
+                            loadRefInfo.Value.CallBack(resource.objList);
+                            //立刻实例化后，删除映射
+                            idResDict.Remove(loadRefInfo.Value.RefID);
+                        }
+                        break;
+                    case eResUseCallbackStrategy.Delay:
+                        {
+                            int nRefId = loadRefInfo.Value.RefID;
+                            resource.ChgInsRef(nRefId, loadRefInfo.Value.CallBack);
+                        }
+                        break;
+                    case eResUseCallbackStrategy.Self:
+                        {
+                            int nRefId = loadRefInfo.Value.RefID;
+                            resource.ChgFreeUseRef(nRefId);
+                        }
+                        break;
+                }
+            }
+          
             foreach(KeyValuePair<int,InsRef> insRefInfo in resource.insDict)
             {
                 delayedInsList.Add(insRefInfo.Value);
