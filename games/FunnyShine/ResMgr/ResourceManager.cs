@@ -151,7 +151,7 @@ namespace ResMgr
 
         public int NextRefID()
         {
-            nNextRefId = (nNextRefId + 1) & (^(nResIDShitf - 1));
+            nNextRefId = (nNextRefId + 1) & (~(nResIDShitf - 1));
             return ID + nNextRefId;
         }
 

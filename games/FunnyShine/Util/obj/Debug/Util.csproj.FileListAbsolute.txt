@@ -2,3 +2,7 @@ D:\gitroot\app\network-csharp\FunnyShine\Util\bin\Debug\Util.dll
 D:\gitroot\app\network-csharp\FunnyShine\Util\bin\Debug\Util.pdb
 D:\gitroot\app\network-csharp\FunnyShine\Util\obj\Debug\Util.dll
 D:\gitroot\app\network-csharp\FunnyShine\Util\obj\Debug\Util.pdb
+D:\gitroot\app\games\FunnyShine\Util\bin\Debug\Util.dll
+D:\gitroot\app\games\FunnyShine\Util\bin\Debug\Util.pdb
+D:\gitroot\app\games\FunnyShine\Util\obj\Debug\Util.dll
+D:\gitroot\app\games\FunnyShine\Util\obj\Debug\Util.pdb

@@ -1,0 +1,11 @@
+D:\gitroot\app\games\FunnyShine\EditorTolls\bin\Debug\EditorTolls.dll
+D:\gitroot\app\games\FunnyShine\EditorTolls\bin\Debug\EditorTolls.pdb
+D:\gitroot\app\games\FunnyShine\EditorTolls\bin\Debug\UnityEditor.dll
+D:\gitroot\app\games\FunnyShine\EditorTolls\bin\Debug\UnityEngine.dll
+D:\gitroot\app\games\FunnyShine\EditorTolls\bin\Debug\Mono.Cecil.dll
+D:\gitroot\app\games\FunnyShine\EditorTolls\bin\Debug\nunit.framework.dll
+D:\gitroot\app\games\FunnyShine\EditorTolls\bin\Debug\Unity.DataContract.dll
+D:\gitroot\app\games\FunnyShine\EditorTolls\bin\Debug\ICSharpCode.NRefactory.dll
+D:\gitroot\app\games\FunnyShine\EditorTolls\obj\Debug\EditorTolls.csprojResolveAssemblyReference.cache
+D:\gitroot\app\games\FunnyShine\EditorTolls\obj\Debug\EditorTolls.dll
+D:\gitroot\app\games\FunnyShine\EditorTolls\obj\Debug\EditorTolls.pdb

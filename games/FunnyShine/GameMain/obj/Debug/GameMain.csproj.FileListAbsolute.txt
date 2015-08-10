@@ -1,0 +1,5 @@
+D:\gitroot\app\games\FunnyShine\GameMain\bin\Debug\GameMain.dll
+D:\gitroot\app\games\FunnyShine\GameMain\bin\Debug\GameMain.pdb
+D:\gitroot\app\games\FunnyShine\GameMain\bin\Debug\UnityEngine.dll
+D:\gitroot\app\games\FunnyShine\GameMain\obj\Debug\GameMain.dll
+D:\gitroot\app\games\FunnyShine\GameMain\obj\Debug\GameMain.pdb
