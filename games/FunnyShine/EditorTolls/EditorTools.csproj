@@ -8,8 +8,8 @@
     <ProjectGuid>{91842A89-3E1C-4FA3-8631-EA10A1237E25}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>EditorTolls</RootNamespace>
-    <AssemblyName>EditorTolls</AssemblyName>
+    <RootNamespace>EditorTools</RootNamespace>
+    <AssemblyName>EditorTools</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
