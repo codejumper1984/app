@@ -1,8 +1,0 @@
-D:\gitroot\app\network-csharp\NetWork\NetWork\obj\Debug\NetWork.csprojResolveAssemblyReference.cache
-D:\gitroot\app\network-csharp\NetWork\NetWork\bin\Debug\NetWork.dll
-D:\gitroot\app\network-csharp\NetWork\NetWork\bin\Debug\NetWork.pdb
-D:\gitroot\app\network-csharp\NetWork\NetWork\bin\Debug\protobuf-net.dll
-D:\gitroot\app\network-csharp\NetWork\NetWork\bin\Debug\protobuf-net.pdb
-D:\gitroot\app\network-csharp\NetWork\NetWork\bin\Debug\protobuf-net.xml
-D:\gitroot\app\network-csharp\NetWork\NetWork\obj\Debug\NetWork.dll
-D:\gitroot\app\network-csharp\NetWork\NetWork\obj\Debug\NetWork.pdb
