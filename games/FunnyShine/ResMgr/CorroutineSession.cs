@@ -68,7 +68,7 @@ namespace ResMgr
                 taskList.RemoveAt(taskList.Count - 1);
                 yield return task.doTask();
             }
-            nActiveCorroutine++;
+            nActiveCorroutine--;
         }
     }
 }
